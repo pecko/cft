@@ -535,6 +535,8 @@ public class Messages extends NLS {
 	public static String CloudFoundryAccountSection_LABEL_EMAIL;
 
 	public static String CloudFoundryAccountSection_LABEL_PASSWORD;
+	
+	public static String CloudFoundryAccountSection_LABEL_PASSCODE;
 
 	public static String CloudFoundryAccountSection_LABEL_URL;
 

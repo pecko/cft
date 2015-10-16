@@ -80,9 +80,11 @@ public abstract class LocalServerRequest<T> extends ClientRequest<T> {
 	@Override
 	public T runAndWait(CloudFoundryOperations client, SubMonitor monitor) throws CoreException {
 		CloudFoundryServer cloudServer = getCloudServer();
-		if (cloudServer.getUsername() == null || cloudServer.getUsername().length() == 0
+		if (!cloudServer.isSso()) {
+			if (cloudServer.getUsername() == null || cloudServer.getUsername().length() == 0
 				|| cloudServer.getPassword() == null || cloudServer.getPassword().length() == 0) {
-			CloudFoundryPlugin.getCallback().getCredentials(cloudServer);
+				CloudFoundryPlugin.getCallback().getCredentials(cloudServer);
+			}
 		}
 
 		Server server = (Server) cloudServer.getServer();

@@ -27,14 +27,20 @@ import org.eclipse.cft.server.core.internal.CloudFoundryServer;
 import org.eclipse.cft.server.core.internal.CloudServerEvent;
 import org.eclipse.cft.server.core.internal.CloudServerListener;
 import org.eclipse.cft.server.core.internal.ServerEventHandler;
+import org.eclipse.cft.server.core.internal.client.CloudFoundryClientFactory;
+import org.eclipse.cft.server.ui.internal.CloudFoundryServerUiPlugin;
 import org.eclipse.cft.server.ui.internal.CloudFoundryURLNavigation;
 import org.eclipse.cft.server.ui.internal.CloudUiUtil;
 import org.eclipse.cft.server.ui.internal.Messages;
+import org.eclipse.cft.server.ui.internal.actions.CloudFoundryServerCommand;
 import org.eclipse.cft.server.ui.internal.actions.UpdatePasswordOperation;
 import org.eclipse.cft.server.ui.internal.wizards.OrgsAndSpacesWizard;
+import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -56,9 +62,13 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.forms.IFormColors;
+import org.eclipse.ui.forms.events.HyperlinkAdapter;
+import org.eclipse.ui.forms.events.HyperlinkEvent;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.ui.forms.widgets.Hyperlink;
 import org.eclipse.ui.forms.widgets.Section;
+import org.eclipse.ui.part.PageBook;
 import org.eclipse.wst.server.core.IServer;
 import org.eclipse.wst.server.ui.editor.ServerEditorSection;
 
@@ -87,6 +97,30 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 
 	private Text validateLabel;
 
+	private Text passcodeText;
+
+	private Button sso;
+
+	private Label emailLabel;
+
+	private Label passwordLabel;
+
+	private Label passcodeLabel;
+
+	private Hyperlink prompt;
+
+	private Button validateButton;
+
+	private Button changePasswordButton;
+
+	private Control emailPasswordPage;
+
+	private Control passcodePage;
+
+	private PageBook pageBook;
+	
+	protected boolean updating;
+
 	// private CloudUrlWidget urlWidget;
 
 	// private Combo urlCombo;
@@ -97,6 +131,9 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 	public void update() {
 		if (cfServer.getUsername() != null && emailText != null && !cfServer.getUsername().equals(emailText.getText())) {
 			emailText.setText(cfServer.getUsername());
+		}
+		if (sso != null && !(sso.getSelection() == cfServer.isSso()) ) {
+			cfServer.setSso(sso.getSelection());
 		}
 		if (cfServer.getPassword() != null && passwordText != null
 				&& !cfServer.getPassword().equals(passwordText.getText())) {
@@ -143,39 +180,22 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 		topComposite.setLayout(new GridLayout(2, false));
 		topComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
-		Label emailLabel = toolkit.createLabel(topComposite, Messages.CloudFoundryAccountSection_LABEL_EMAIL, SWT.NONE);
-		emailLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
-		emailLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+		sso = new Button(topComposite, SWT.CHECK);
+		GridData gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+		gd.horizontalSpan = 2;
+		sso.setLayoutData(gd);
+		sso.setText("SSO server?");
+		sso.setSelection(cfServer.isSso());
+		
+		pageBook = new PageBook(topComposite, SWT.NONE);
+		gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+		gd.horizontalSpan = 2;
+		pageBook.setLayoutData(gd);
+				
+		emailPasswordPage = createEmailPasswordControl(toolkit, pageBook);
 
-		emailText = toolkit.createText(topComposite, ""); //$NON-NLS-1$
-
-		emailText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-		emailText.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
-		if (cfServer.getUsername() != null) {
-			emailText.setText(cfServer.getUsername());
-		}
-
-		// Changing username is not currently supported through the editor.
-		emailText.setEditable(false);
-		// emailText.addModifyListener(new DataChangeListener(DataType.EMAIL));
-
-		Label passwordLabel = toolkit.createLabel(topComposite, Messages.CloudFoundryAccountSection_LABEL_PASSWORD, SWT.NONE);
-		passwordLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
-		passwordLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
-
-		passwordText = toolkit.createText(topComposite, "", SWT.PASSWORD); //$NON-NLS-1$
-		passwordText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-		passwordText.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
-		if (cfServer.getPassword() != null) {
-			passwordText.setText(cfServer.getPassword());
-		}
-
-		// Setting password through text control is disabled. Passwords are
-		// instead set through a separate update password dialogue
-		passwordText.setEditable(false);
-		// passwordText.addModifyListener(new
-		// DataChangeListener(DataType.PASSWORD));
-
+		passcodePage = createPasscodeComposite(toolkit, pageBook);
+		
 		Label label = toolkit.createLabel(topComposite, Messages.CloudFoundryAccountSection_LABEL_URL);
 		label.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
 		label.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
@@ -188,7 +208,7 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 			urlText.setText(CloudUiUtil.getDisplayTextFromUrl(cfServer.getUrl(), cfServer.getServer().getServerType()
 					.getId()));
 		}
-
+		
 		Label orgLabel = toolkit.createLabel(topComposite, Messages.CloudFoundryAccountSection_LABEL_ORG, SWT.NONE);
 		orgLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
 		orgLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
@@ -238,7 +258,7 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 
 		createCloneServerArea(buttonComposite, toolkit);
 
-		final Button changePasswordButton = toolkit.createButton(buttonComposite,
+		changePasswordButton = toolkit.createButton(buttonComposite,
 				Messages.CloudFoundryAccountSection_BUTTON_CHANGE_PW, SWT.PUSH);
 
 		changePasswordButton.setEnabled(true);
@@ -274,7 +294,7 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 			}
 		});
 
-		final Button validateButton = toolkit.createButton(buttonComposite,
+		validateButton = toolkit.createButton(buttonComposite,
 				Messages.CloudFoundryAccountSection_BUTTON_VALIDATE_ACCOUNT, SWT.PUSH);
 		validateButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
 		validateButton.addSelectionListener(new SelectionAdapter() {
@@ -347,10 +367,133 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 			});
 		}
 
+		sso.addSelectionListener(new SelectionAdapter() {
+
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				if (updating)
+					return;
+				updating = true;
+				CloudFoundryServerCommand command = new CloudFoundryServerCommand(cfServer, "Setting sso") {
+
+					@Override
+					public IStatus execute(IProgressMonitor monitor, IAdaptable info) throws ExecutionException {
+						server.setSso(sso.getSelection());
+						return super.execute(monitor, info);
+					}
+					
+				};
+				execute(command);
+				updating = false;
+				enableSso(sso.getSelection());
+			}
+			
+		});
+
+		enableSso(sso.getSelection());
 		toolkit.paintBordersFor(topComposite);
 		section.setExpanded(true);
 
 		ServerEventHandler.getDefault().addServerListener(this);
+	}
+
+	private Control createPasscodeComposite(FormToolkit toolkit, Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+		composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+		GridData gd;
+		prompt = toolkit.createHyperlink(composite, "", SWT.LEFT | SWT.WRAP);
+		gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+		gd.horizontalSpan = 2;
+		prompt.setLayoutData(gd);
+		String ssoUrl = "";
+		String href = "";
+		if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
+			try {
+				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl());
+				ssoUrl = "Passcode: Get one at " + href;
+			}
+			catch (Exception e1) {
+				CloudFoundryServerUiPlugin.logWarning(e1);
+			}
+		}
+		prompt.setText(ssoUrl);
+		prompt.setHref(href);
+		prompt.addHyperlinkListener(new HyperlinkAdapter() {
+			public void linkActivated(HyperlinkEvent e) {
+				CloudUiUtil.openUrl(prompt.getHref().toString());
+			}
+		});
+		passcodeLabel = toolkit.createLabel(composite, Messages.CloudFoundryAccountSection_LABEL_PASSCODE, SWT.NONE);
+		passcodeLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
+		passcodeLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+
+		passcodeText = toolkit.createText(composite, "", SWT.BORDER|SWT.PASSWORD); //$NON-NLS-1$
+		passcodeText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		passcodeText.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
+		passcodeText.addModifyListener(new ModifyListener() {
+			
+			@Override
+			public void modifyText(ModifyEvent e) {
+				if (updating)
+					return;
+				updating = true;
+				CloudFoundryServerCommand command = new CloudFoundryServerCommand(cfServer, "Setting sso") {
+
+					@Override
+					public IStatus execute(IProgressMonitor monitor, IAdaptable info) throws ExecutionException {
+						server.setPasscode(passcodeText.getText());
+						return super.execute(monitor, info);
+					}
+					
+				};
+				execute(command);
+				updating = false;
+			}
+		});
+		return composite;
+	}
+
+	private Control createEmailPasswordControl(FormToolkit toolkit, Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+		composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+		emailLabel = toolkit.createLabel(composite, Messages.CloudFoundryAccountSection_LABEL_EMAIL, SWT.NONE);
+		emailLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
+		emailLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+
+		emailText = toolkit.createText(composite, "", SWT.BORDER); //$NON-NLS-1$
+
+		emailText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		emailText.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
+		if (cfServer.getUsername() != null) {
+			emailText.setText(cfServer.getUsername());
+		}
+
+		// Changing username is not currently supported through the editor.
+		emailText.setEditable(false);
+		// emailText.addModifyListener(new DataChangeListener(DataType.EMAIL));
+
+		passwordLabel = toolkit.createLabel(composite, Messages.CloudFoundryAccountSection_LABEL_PASSWORD, SWT.NONE);
+		passwordLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
+		passwordLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+
+		passwordText = toolkit.createText(composite, "", SWT.PASSWORD|SWT.BORDER); //$NON-NLS-1$
+		passwordText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		passwordText.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
+		if (cfServer.getPassword() != null) {
+			passwordText.setText(cfServer.getPassword());
+		}
+
+		// Setting password through text control is disabled. Passwords are
+		// instead set through a separate update password dialogue
+		passwordText.setEditable(false);
+		// passwordText.addModifyListener(new
+		// DataChangeListener(DataType.PASSWORD));
+		
+		return composite;
 	}
 
 	protected void createCloneServerArea(Composite parent, FormToolkit toolkit) {
@@ -358,6 +501,7 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 				Messages.CloudFoundryAccountSection_BUTTON_CLONE_SERVER, SWT.PUSH);
 
 		changeSpaceButton.setEnabled(true);
+		passwordText.setEditable(false);
 
 		changeSpaceButton.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
 		changeSpaceButton.addSelectionListener(new SelectionAdapter() {
@@ -433,7 +577,8 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 			// newValue = emailText.getText();
 			// break;
 			// case PASSWORD:
-			// oldValue = cfServer.getPassword();
+			// oldValue = cfServer.getPassword();passcodeText.setEditable(false);
+
 			// newValue = passwordText.getText();
 			// break;
 			//
@@ -517,4 +662,23 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 		ServerEventHandler.getDefault().removeServerListener(this);
 	}
 
+	private void enableSso(boolean isSso) {
+		if (isSso) {
+			pageBook.showPage(passcodePage);
+		} else {
+			pageBook.showPage(emailPasswordPage);
+			cfServer.setPasscode(null);
+			passcodeText.setText("");
+		}
+		pageBook.getParent().layout(true, true);
+		validateButton.setEnabled(!isSso);
+		validateLabel.setVisible(!isSso );
+		changePasswordButton.setEnabled(!isSso && validateLabel.getText().length() > 0);
+		try {
+			cfServer.getBehaviour().disconnect(new NullProgressMonitor());
+		}
+		catch (CoreException e) {
+			CloudFoundryServerUiPlugin.logError(e);
+		}
+	}
 }

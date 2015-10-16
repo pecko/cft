@@ -143,6 +143,7 @@ public class CloudFoundryServerStatusSection extends ServerEditorSection impleme
 					protected IStatus run(IProgressMonitor monitor) {
 						try {
 							cfServer.getBehaviour().disconnect(monitor);
+							cfServer.getBehaviour().resetClient(monitor);
 						}
 						catch (CoreException e) {
 							StatusManager.getManager().handle(new Status(Status.ERROR, CloudFoundryServerUiPlugin.PLUGIN_ID, "", e), StatusManager.LOG); //$NON-NLS-1$

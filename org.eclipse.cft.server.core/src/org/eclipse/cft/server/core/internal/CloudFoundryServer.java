@@ -122,6 +122,10 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 
 	static final String PROP_SPACE_ID = "org.eclipse.cft.space"; //$NON-NLS-1$
 
+	public static final String PROP_SSO_ID = "org.eclipse.cft.sso"; //$NON-NLS-1$
+	
+	public static final String PROP_PASSCODE_ID = "org.eclipse.cft.passcode"; //$NON-NLS-1$
+
 	static final String TUNNEL_SERVICE_COMMANDS_PROPERTY = "org.eclipse.cft.tunnel.service.commands"; //$NON-NLS-1$
 
 	private static final String PROPERTY_DEPLOYMENT_NAME = "deployment_name"; //$NON-NLS-1$
@@ -471,6 +475,10 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 
 	public String getUsername() {
 		return getAttribute(PROP_USERNAME_ID, (String) null);
+	}
+	
+	public boolean isSso() {
+		return getAttribute(PROP_SSO_ID, false);
 	}
 
 	public String getServerId() {
@@ -1301,5 +1309,19 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 		// by setting the contextRoot to null, and launches the default
 		// application entry URL.
 		return null;
+	}
+
+	public String getPasscode() {
+		return getAttribute(PROP_PASSCODE_ID, "");
+	}
+
+	public void setPasscode(String passcode) {
+		setAttribute(PROP_PASSCODE_ID, passcode);
+		updateServerId();
+	}
+
+	public void setSso(boolean selection) {
+		setAttribute(PROP_SSO_ID, selection);
+		updateServerId();
 	}
 }

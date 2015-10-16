@@ -55,5 +55,11 @@ public class CloudFoundryServerUiPlugin extends AbstractUIPlugin {
 			plugin.getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, e.getLocalizedMessage()));
 		}
 	}
+	
+	public static void logWarning(Throwable e) {
+		if (plugin != null) {
+			plugin.getLog().log(new Status(IStatus.WARNING, PLUGIN_ID, e.getLocalizedMessage()));
+		}
+	}
 
 }

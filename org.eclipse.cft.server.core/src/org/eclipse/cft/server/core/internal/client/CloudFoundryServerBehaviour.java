@@ -178,7 +178,7 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 
 	public void connect(IProgressMonitor monitor) throws CoreException {
 		final CloudFoundryServer cloudServer = getCloudFoundryServer();
-
+		
 		new BehaviourRequest<Void>("Loggging in to " + cloudServer.getUrl()) { //$NON-NLS-1$
 			@Override
 			protected Void doRun(CloudFoundryOperations client, SubMonitor progress) throws CoreException {
@@ -1113,10 +1113,15 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 				client = createClient(url, credentials, cloudFoundrySpace, cloudServer.getSelfSignedCertificate());
 			}
 			else {
-				String userName = getCloudFoundryServer().getUsername();
-				String password = getCloudFoundryServer().getPassword();
-				client = createClient(url, userName, password, cloudFoundrySpace,
+				if (cloudServer.isSso()) {
+					credentials = new CloudCredentials(getCloudFoundryServer().getPasscode());
+					client = createClient(url, credentials, cloudFoundrySpace, cloudServer.getSelfSignedCertificate());
+				} else {
+					String userName = getCloudFoundryServer().getUsername();
+					String password = getCloudFoundryServer().getPassword();
+					client = createClient(url, userName, password, cloudFoundrySpace,
 						cloudServer.getSelfSignedCertificate());
+				}
 			}
 		}
 		return client;
