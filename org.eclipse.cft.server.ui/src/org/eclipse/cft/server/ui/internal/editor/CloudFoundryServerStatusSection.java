@@ -31,6 +31,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
@@ -43,7 +44,9 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorSite;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.forms.IFormColors;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.eclipse.ui.forms.widgets.FormToolkit;
@@ -115,8 +118,20 @@ public class CloudFoundryServerStatusSection extends ServerEditorSection impleme
 				Job job = new Job(Messages.CloudFoundryServerStatusSection_JOB_CONN_SERVER) {
 					
 					@Override
-					protected IStatus run(IProgressMonitor monitor) {
+					protected IStatus run(final IProgressMonitor monitor) {
 						try {
+							Display.getDefault().syncExec(new Runnable() {
+								public void run() {
+									IEditorPart editor = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
+									if (editor != null && editor.isDirty()) {
+										boolean ok = MessageDialog.openQuestion(getShell(), "Save?", "The editor has a unsaved changes. Do you want to save that?");
+										if (ok) {
+											editor.doSave(monitor);
+										}
+									}
+								}
+							});
+							
 							cfServer.getBehaviour().connect(monitor);
 						}
 						catch (CoreException e) {

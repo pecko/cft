@@ -227,11 +227,9 @@ public class CloudFoundryClientFactory {
 		return null;
 	}
 
-	public static String getSsoUrl(String apiurl) throws Exception {
+	public static String getSsoUrl(String apiurl, boolean trustSelfSignedCerts) throws Exception {
 		RestUtil restUtil = new RestUtil();
 		HttpProxyConfiguration httpProxyConfiguration = getProxy(new URL(apiurl));
-		// FIXME
-		boolean trustSelfSignedCerts = false;
 		RestTemplate restTemplate = restUtil.createRestTemplate(httpProxyConfiguration, trustSelfSignedCerts);
 		String infoV2Json = restTemplate.getForObject(getUrl(apiurl, "/v2/info"), String.class);
 		Map<String, Object> infoV2Map = JsonUtil.convertJsonToMap(infoV2Json);
@@ -240,8 +238,10 @@ public class CloudFoundryClientFactory {
 		Map<String, Object> passcodeMap = JsonUtil.convertJsonToMap(passcodeJson);
 		Object prompts = passcodeMap.get("prompts");
 		if (prompts instanceof Map) {
+			@SuppressWarnings("rawtypes")
 			Object text = ((Map)prompts).get("passcode");
 			if (text instanceof List) {
+				@SuppressWarnings("rawtypes")
 				List list = (List) text;
 				if (list.size() >= 2 && list.get(1) != null) {
 					String message = list.get(1).toString();

@@ -184,7 +184,7 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 		GridData gd = new GridData(SWT.FILL, SWT.FILL, true, false);
 		gd.horizontalSpan = 2;
 		sso.setLayoutData(gd);
-		sso.setText("SSO server?");
+		sso.setText(Messages.SSO_SERVER);
 		sso.setSelection(cfServer.isSso());
 		
 		pageBook = new PageBook(topComposite, SWT.NONE);
@@ -413,8 +413,8 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 		String href = "";
 		if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
 			try {
-				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl());
-				ssoUrl = "Passcode: Get one at " + href;
+				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl(), cfServer.getSelfSignedCertificate());
+				ssoUrl = Messages.bind(Messages.PASSCODE_PROMPT1, href);
 			}
 			catch (Exception e1) {
 				CloudFoundryServerUiPlugin.logWarning(e1);

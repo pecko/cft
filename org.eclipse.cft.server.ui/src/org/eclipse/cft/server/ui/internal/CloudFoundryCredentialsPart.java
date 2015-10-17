@@ -179,7 +179,7 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 		sso = new Button(composite, SWT.CHECK);
 		GridData gd = new GridData(SWT.FILL, SWT.FILL, true, false);
 		sso.setLayoutData(gd);
-		sso.setText("SSO server?");
+		sso.setText(Messages.SSO_SERVER);
 		sso.setSelection(cfServer.isSso());
 		
 		pageBook = new PageBook(composite, SWT.NONE);
@@ -321,9 +321,9 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 		String href = null;
 		if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
 			try {
-				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl());
+				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl(), cfServer.getSelfSignedCertificate());
 				if (href != null) {
-					ssoUrl = "Passcode: Get one at <a>" + href + "</a>";
+					ssoUrl = Messages.bind(Messages.PASSCODE_PROMPT2, href);
 				}
 			}
 			catch (Exception e1) {

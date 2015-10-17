@@ -31,7 +31,9 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.osgi.util.NLS;
+import org.eclipse.swt.widgets.Display;
 
 public class ConnectCommand extends BaseCommandHandler {
 
@@ -44,7 +46,21 @@ public class ConnectCommand extends BaseCommandHandler {
 			@Override
 			protected IStatus run(IProgressMonitor monitor) {
 				try {
-					cloudServer.getBehaviour().connect(monitor);
+					// FIXME
+					if (cloudServer.isSso()) {
+						// enter passcode dialog
+						Display.getDefault().syncExec(new Runnable() {
+							
+							@Override
+							public void run() {
+								MessageDialog.openInformation(null, "Not yet implemented",
+									"This command isn't implemented for a sso server. Please, open the server editor and connect.");
+							}
+						});
+						
+					} else {
+						cloudServer.getBehaviour().connect(monitor);
+					}
 				}
 				catch (OperationCanceledException e) {
 					return Status.CANCEL_STATUS;

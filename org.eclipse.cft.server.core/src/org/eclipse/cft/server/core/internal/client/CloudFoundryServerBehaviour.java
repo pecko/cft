@@ -818,7 +818,11 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 	public CloudFoundryOperations resetClient(CloudCredentials credentials, IProgressMonitor monitor)
 			throws CoreException {
 		internalResetClient();
-		return getClient(credentials, monitor);
+		CloudFoundryServer cloudServer = getCloudFoundryServer();
+		if (!cloudServer.isSso()) {
+			return getClient(credentials, monitor);
+		}
+		return null;
 	}
 
 	protected void internalResetClient() {

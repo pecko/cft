@@ -605,6 +605,12 @@ public class Messages extends NLS {
 	public static String CloudFoundryCredentialsPart_TEXT_CREDENTIAL_WIZ_TITLE;
 
 	public static String CloudFoundryCredentialsPart_TEXT_REGISTER_BUTTON;
+	
+	public static String SSO_SERVER;
+	
+	public static String PASSCODE_PROMPT1;
+	
+	public static String PASSCODE_PROMPT2;
 
 	public static String CloudFoundryCredentialsPart_TEXT_VALIDATE_BUTTON;
 
