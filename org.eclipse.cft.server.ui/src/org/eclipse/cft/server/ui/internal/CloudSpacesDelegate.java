@@ -21,6 +21,7 @@
  ********************************************************************************/
 package org.eclipse.cft.server.ui.internal;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.cloudfoundry.client.lib.domain.CloudSpace;
@@ -124,9 +125,11 @@ public abstract class CloudSpacesDelegate {
 	 * @param urlText
 	 * @param userName
 	 * @param password
+	 * @param passcode 
+	 * @param sso 
 	 * @return
 	 */
-	public boolean matchesCurrentDescriptor(String urlText, String userName, String password, boolean selfSigned) {
+	public boolean matchesCurrentDescriptor(String urlText, String userName, String password, boolean selfSigned, boolean sso, String passcode) {
 		String actualURL = CloudUiUtil.getUrlFromDisplayText(urlText);
 
 		String cachedDescriptorID = CloudSpacesDescriptor.getDescriptorID(userName, password, actualURL, selfSigned);
@@ -207,15 +210,17 @@ public abstract class CloudSpacesDelegate {
 	 * the given set of credentials to obtain a new list of orgs/spaces and then
 	 * perform check on the current server if a default space is set. If false,
 	 * will only perform a local space selection check on the current server
+	 * @param passcode 
+	 * @param sso 
 	 * @throws CoreException if credentials and URL do not match the current
 	 * credentials and URL in the server, are invalid, or failed to retrieve
 	 * list of spaces
 	 */
 	public CloudSpacesDescriptor resolveDescriptor(String urlText, String userName, String password,
-			boolean selfSigned, IRunnableContext context, boolean updateDescriptor) throws CoreException {
+			boolean selfSigned, IRunnableContext context, boolean updateDescriptor, boolean sso, String passcode) throws CoreException {
 		CloudSpacesDescriptor descriptor = null;
 		if (updateDescriptor) {
-			descriptor = internalUpdateDescriptor(urlText, userName, password, selfSigned, context);
+			descriptor = internalUpdateDescriptor(urlText, userName, password, selfSigned, context, sso, passcode);
 		}
 
 		IStatus status = validateCurrent(getCurrentCloudSpace());
@@ -226,14 +231,14 @@ public abstract class CloudSpacesDelegate {
 	}
 
 	protected CloudSpacesDescriptor internalUpdateDescriptor(String urlText, String userName, String password,
-			boolean selfSigned, IRunnableContext context) throws CoreException {
+			boolean selfSigned, IRunnableContext context, boolean sso, String passcode) throws CoreException {
 		String actualURL = CloudUiUtil.getUrlFromDisplayText(urlText);
 
-		validateCredentialsLocally(actualURL, userName, password);
+		validateCredentialsLocally(actualURL, userName, password, sso, passcode);
 
 		if (spacesDescriptor == null) {
 			CloudOrgsAndSpaces orgsAndSpaces = CloudUiUtil.getCloudSpaces(userName, password, actualURL, true,
-					selfSigned, context);
+					selfSigned, context, sso, passcode);
 
 			if (orgsAndSpaces != null) {
 				spacesDescriptor = new CloudSpacesDescriptor(orgsAndSpaces, userName, password, actualURL, selfSigned);
@@ -262,13 +267,22 @@ public abstract class CloudSpacesDelegate {
 		return CloudFoundryPlugin.getStatus(validationMessage, severity);
 	}
 
-	protected void validateCredentialsLocally(String url, String userName, String password) throws CoreException {
+	protected void validateCredentialsLocally(String url, String userName, String password, boolean sso, String passcode) throws CoreException {
 		String actualURL = cloudServer.getUrl();
 		String actualUserName = cloudServer.getUsername();
 		String actualPassword = cloudServer.getPassword();
+		String actualPasscode = cloudServer.getPasscode();
 
 		boolean isValid = true;
-		String[][] valuesToCheck = { { url, actualURL }, { userName, actualUserName }, { password, actualPassword } };
+		List<String[]> valuesToCheck = new ArrayList<String[]>();
+		if (sso) {
+			valuesToCheck.add(new String[] { url, actualURL }) ;
+			valuesToCheck.add(new String[] { passcode, actualPasscode }) ;
+		} else {
+			valuesToCheck.add( new String[] { url, actualURL });
+			valuesToCheck.add( new String[] { userName, actualUserName });
+			valuesToCheck.add( new String[] { password, actualPassword });
+		}
 		for (String[] value : valuesToCheck) {
 
 			if (!areValid(value[0], value[1])) {

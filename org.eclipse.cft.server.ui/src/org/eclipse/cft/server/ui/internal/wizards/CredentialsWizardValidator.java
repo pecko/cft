@@ -45,25 +45,28 @@ public class CredentialsWizardValidator extends ServerWizardValidator {
 
 	@Override
 	protected ValidationStatus validateLocally() {
-
-		String userName = getCloudFoundryServer().getUsername();
-		String password = getCloudFoundryServer().getPassword();
-		String url = getCloudFoundryServer().getUrl();
 		String message = null;
-
 		boolean valuesFilled = false;
+		String url = getCloudFoundryServer().getUrl();
 		int validationEventType = ValidationEvents.VALIDATION;
-
-		if (userName == null || userName.trim().length() == 0) {
-			message = Messages.ENTER_AN_EMAIL;
+		if (getCloudFoundryServer().isSso()) {
+			valuesFilled = true;
+			message = Messages.SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
+		} else {
+			String userName = getCloudFoundryServer().getUsername();
+			String password = getCloudFoundryServer().getPassword();
+			
+			if (userName == null || userName.trim().length() == 0) {
+				message = Messages.ENTER_AN_EMAIL;
+			}
+			else if (password == null || password.trim().length() == 0) {
+				message = Messages.ENTER_A_PASSWORD;
+			}
 		}
-		else if (password == null || password.trim().length() == 0) {
-			message = Messages.ENTER_A_PASSWORD;
-		}
-		else if (url == null || url.trim().length() == 0) {
+		if (url == null || url.trim().length() == 0) {
 			message = NLS.bind(Messages.SELECT_SERVER_URL, getSpaceDelegate().getServerServiceName());
-		}
-		else {
+			valuesFilled = false;
+		} else {
 			valuesFilled = true;
 			message = Messages.SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
 		}

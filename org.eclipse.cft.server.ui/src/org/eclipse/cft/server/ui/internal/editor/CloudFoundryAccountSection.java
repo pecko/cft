@@ -194,7 +194,7 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 				
 		emailPasswordPage = createEmailPasswordControl(toolkit, pageBook);
 
-		passcodePage = createPasscodeComposite(toolkit, pageBook);
+		passcodePage = createPasscodeControl(toolkit, pageBook);
 		
 		Label label = toolkit.createLabel(topComposite, Messages.CloudFoundryAccountSection_LABEL_URL);
 		label.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
@@ -305,9 +305,11 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 				final String password = passwordText.getText();
 				final String org = orgText.getText();
 				final String space = spaceText.getText();
+				final boolean sso = cfServer.isSso();
+				final String passcode = cfServer.getPasscode();
 				try {
 					CloudUiUtil.validateCredentials(userName, password, url, false,
-							cfServer.getSelfSignedCertificate(), null);
+							cfServer.getSelfSignedCertificate(), null, sso, passcode);
 
 					if (org != null && space != null) {
 						validateLabel.setForeground(validateLabel.getDisplay().getSystemColor(SWT.COLOR_BLUE));
@@ -397,7 +399,7 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 		ServerEventHandler.getDefault().addServerListener(this);
 	}
 
-	private Control createPasscodeComposite(FormToolkit toolkit, Composite parent) {
+	private Control createPasscodeControl(FormToolkit toolkit, Composite parent) {
 		Composite composite = new Composite(parent, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
 		composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));

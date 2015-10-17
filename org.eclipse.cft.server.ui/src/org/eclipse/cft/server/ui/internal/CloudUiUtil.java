@@ -230,13 +230,15 @@ public class CloudUiUtil {
 	 * @param selfSigned true if its a server using self-signed certificate. If
 	 * this information is not known, set this to false
 	 * @param context
+	 * @param passcode 
+	 * @param sso 
 	 * 
 	 * @throws CoreException if validation failed and error type cannot be
 	 * determined
 	 * @throws OperationCanceledException if validation is cancelled.
 	 */
 	public static void validateCredentials(final String userName, final String password, final String urlText,
-			final boolean displayURL, final boolean selfSigned, IRunnableContext context) throws CoreException,
+			final boolean displayURL, final boolean selfSigned, IRunnableContext context, final boolean sso, final String passcode) throws CoreException,
 			OperationCanceledException {
 		try {
 			ICoreRunnable coreRunner = new ICoreRunnable() {
@@ -245,7 +247,7 @@ public class CloudUiUtil {
 					if (displayURL) {
 						url = getUrlFromDisplayText(urlText);
 					}
-					CloudFoundryServerBehaviour.validate(url, userName, password, selfSigned, monitor);
+					CloudFoundryServerBehaviour.validate(url, userName, password, selfSigned, monitor, sso, passcode);
 				}
 			};
 			if (context != null) {
@@ -281,11 +283,13 @@ public class CloudUiUtil {
 	 * @param displayURL true if URL is display URL
 	 * @param selfSigned true if connecting to a self-signing server. False otherwise
 	 * @param context may be optional
+	 * @param passcode 
+	 * @param sso 
 	 * @return spaces descriptor, or null if it couldn't be determined
 	 * @throws CoreException
 	 */
 	public static CloudOrgsAndSpaces getCloudSpaces(final String userName, final String password, final String urlText,
-			final boolean displayURL, final boolean selfSigned, IRunnableContext context) throws CoreException {
+			final boolean displayURL, final boolean selfSigned, IRunnableContext context, final boolean sso, final String passcode) throws CoreException {
 
 		try {
 			final CloudOrgsAndSpaces[] supportsSpaces = new CloudOrgsAndSpaces[1];
@@ -295,8 +299,13 @@ public class CloudUiUtil {
 					if (displayURL) {
 						url = getUrlFromDisplayText(urlText);
 					}
-					supportsSpaces[0] = CloudFoundryServerBehaviour.getCloudSpacesExternalClient(new CloudCredentials(
-							userName, password), url, selfSigned, monitor);
+					if (sso) {
+						supportsSpaces[0] = CloudFoundryServerBehaviour.getCloudSpacesExternalClient(new CloudCredentials(
+								passcode), url, selfSigned, sso, passcode, monitor);
+					} else {
+						supportsSpaces[0] = CloudFoundryServerBehaviour.getCloudSpacesExternalClient(new CloudCredentials(
+							userName, password), url, selfSigned, sso, passcode, monitor);
+					}
 				}
 			};
 			if (context != null) {

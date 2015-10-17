@@ -101,7 +101,7 @@ public class CloudUIUtil {
 	 * @throws CoreException
 	 */
 	public static CloudOrgsAndSpaces getCloudSpaces(String userName, String password, String urlText,
-			boolean displayURL, boolean selfSigned, IRunnableContext context) throws CoreException {
-		return CloudUiUtil.getCloudSpaces(userName, password, urlText, displayURL, selfSigned, context);
+			boolean displayURL, boolean selfSigned, IRunnableContext context, boolean sso, String passcode) throws CoreException {
+		return CloudUiUtil.getCloudSpaces(userName, password, urlText, displayURL, selfSigned, context, sso, passcode);
 	}
 }

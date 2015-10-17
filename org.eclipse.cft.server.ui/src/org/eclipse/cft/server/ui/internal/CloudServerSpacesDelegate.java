@@ -43,9 +43,9 @@ public class CloudServerSpacesDelegate extends CloudSpacesDelegate {
 	}
 
 	protected CloudSpacesDescriptor internalUpdateDescriptor(String urlText, String userName, String password,
-			boolean selfSigned, IRunnableContext context) throws CoreException {
+			boolean selfSigned, IRunnableContext context, boolean sso, String passcode) throws CoreException {
 		CloudSpacesDescriptor spacesDescriptor = super.internalUpdateDescriptor(urlText, userName, password,
-				selfSigned, context);
+				selfSigned, context, sso, passcode);
 		internalDescriptorChanged();
 
 		return spacesDescriptor;

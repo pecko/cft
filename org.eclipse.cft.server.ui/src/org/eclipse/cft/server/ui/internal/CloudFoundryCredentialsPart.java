@@ -26,6 +26,7 @@ import org.eclipse.cft.server.core.internal.CloudFoundryConstants;
 import org.eclipse.cft.server.core.internal.CloudFoundryPlugin;
 import org.eclipse.cft.server.core.internal.CloudFoundryServer;
 import org.eclipse.cft.server.core.internal.ValidationEvents;
+import org.eclipse.cft.server.core.internal.client.CloudFoundryClientFactory;
 import org.eclipse.cft.server.ui.internal.editor.CloudUrlWidget;
 import org.eclipse.cft.server.ui.internal.wizards.RegisterAccountWizard;
 import org.eclipse.cft.server.ui.internal.wizards.WizardHandleContext;
@@ -47,11 +48,15 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.part.PageBook;
 import org.eclipse.wst.server.ui.wizard.IWizardHandle;
 
 /**
@@ -85,6 +90,16 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 	private Button cfSignupButton;
 
 	private IRunnableContext runnableContext;
+
+	private Button sso;
+
+	private PageBook pageBook;
+
+	private Link prompt;
+
+	private Label passcodeLabel;
+
+	private Text passcodeText;
 
 	public CloudFoundryCredentialsPart(CloudFoundryServer cfServer, WizardPage wizardPage) {
 		this(cfServer);
@@ -161,65 +176,47 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 		composite.setLayout(new GridLayout());
 		composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
-		Composite topComposite = new Composite(composite, SWT.NONE);
-		topComposite.setLayout(new GridLayout(2, false));
-		topComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		sso = new Button(composite, SWT.CHECK);
+		GridData gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+		sso.setLayoutData(gd);
+		sso.setText("SSO server?");
+		sso.setSelection(cfServer.isSso());
+		
+		pageBook = new PageBook(composite, SWT.NONE);
+		gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+		pageBook.setLayoutData(gd);
+		
+		final Control emailPasswordControl = createEmailPasswordControl(pageBook);
+		final Control passcodeControl = createPasscodeControl(pageBook);
 
-		Label emailLabel = new Label(topComposite, SWT.NONE);
-		emailLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
-		emailLabel.setText(Messages.COMMONTXT_EMAIL_WITH_COLON);
+		showPage(emailPasswordControl, passcodeControl);
+		sso.addSelectionListener(new SelectionAdapter() {
 
-		emailText = new Text(topComposite, SWT.BORDER);
-		emailText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-		emailText.setEditable(true);
-		emailText.setFocus();
-		if (cfServer.getUsername() != null) {
-			emailText.setText(cfServer.getUsername());
-		}
-
-		emailText.addModifyListener(new ModifyListener() {
-			public void modifyText(ModifyEvent e) {
-				cfServer.setUsername(emailText.getText());
-				updateUI(false);
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				cfServer.setSso(sso.getSelection());
+				showPage(emailPasswordControl, passcodeControl);
 			}
+			
 		});
-
-		Label passwordLabel = new Label(topComposite, SWT.NONE);
-		passwordLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
-		passwordLabel.setText(Messages.COMMONTXT_PW);
-
-		passwordText = new Text(topComposite, SWT.PASSWORD | SWT.BORDER);
-		passwordText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-		passwordText.setEditable(true);
-		if (cfServer.getPassword() != null) {
-			passwordText.setText(cfServer.getPassword());
-		}
-
-		passwordText.addModifyListener(new ModifyListener() {
-			public void modifyText(ModifyEvent e) {
-				cfServer.setPassword(passwordText.getText());
-
-				updateUI(false);
-			}
-		});
-
 		urlWidget = new CloudUrlWidget(cfServer) {
 
 			@Override
 			protected void setUpdatedSelectionInServer() {
 
 				super.setUpdatedSelectionInServer();
-
+				prompt.setText(getPromptText());
 				updateUI(false);
 			}
 
 		};
 
-		urlWidget.createControls(topComposite, runnableContext);
+		urlWidget.createControls(composite, runnableContext);
 
 		String url = urlWidget.getURLSelection();
 		if (url != null) {
 			cfServer.setUrl(CloudUiUtil.getUrlFromDisplayText(url));
+			prompt.setText(getPromptText());
 		}
 
 		final Composite validateComposite = new Composite(composite, SWT.NONE);
@@ -271,6 +268,114 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 		TabItem item = new TabItem(folder, SWT.NONE);
 		item.setText(Messages.COMMONTXT_ACCOUNT_INFO);
 		item.setControl(composite);
+	}
+
+	private void showPage(Control emailPasswordControl, Control passcodeControl) {
+		if (sso.getSelection()) {
+			pageBook.showPage(passcodeControl);
+		} else {
+			pageBook.showPage(emailPasswordControl);
+		}
+	}
+
+	private Control createPasscodeControl(Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+		composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+		GridData gd;
+		prompt = new Link(composite, SWT.LEFT | SWT.WRAP);
+		gd = new GridData(SWT.FILL, SWT.FILL, true, false);
+		gd.horizontalSpan = 2;
+		prompt.setLayoutData(gd);
+		String ssoUrl = getPromptText();
+		prompt.setText(ssoUrl);
+		prompt.addListener(SWT.Selection, new Listener() {
+			
+			@Override
+			public void handleEvent(Event event) {
+				if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
+					CloudUiUtil.openUrl(cfServer.getUrl());
+				}
+			}
+		});
+		passcodeLabel = new Label(composite, SWT.NONE);
+		passcodeLabel.setText(Messages.CloudFoundryAccountSection_LABEL_PASSCODE);
+		passcodeLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+
+		passcodeText = new Text(composite, SWT.BORDER|SWT.PASSWORD);
+		passcodeText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		passcodeText.addModifyListener(new ModifyListener() {
+			
+			@Override
+			public void modifyText(ModifyEvent e) {
+				cfServer.setPasscode(passcodeText.getText());
+				updateUI(false);
+			}
+		});
+		return composite;
+	}
+
+	private String getPromptText() {
+		String ssoUrl = "";
+		String href = null;
+		if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
+			try {
+				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl());
+				if (href != null) {
+					ssoUrl = "Passcode: Get one at <a>" + href + "</a>";
+				}
+			}
+			catch (Exception e1) {
+				CloudFoundryServerUiPlugin.logWarning(e1);
+			}
+		}
+		return ssoUrl;
+	}
+	
+	private Control createEmailPasswordControl(Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(new GridLayout(2, false));
+		composite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+		Label emailLabel = new Label(composite, SWT.NONE);
+		emailLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+		emailLabel.setText(Messages.COMMONTXT_EMAIL_WITH_COLON);
+
+		emailText = new Text(composite, SWT.BORDER);
+		emailText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		emailText.setEditable(true);
+		emailText.setFocus();
+		if (cfServer.getUsername() != null) {
+			emailText.setText(cfServer.getUsername());
+		}
+
+		emailText.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				cfServer.setUsername(emailText.getText());
+				updateUI(false);
+			}
+		});
+
+		Label passwordLabel = new Label(composite, SWT.NONE);
+		passwordLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+		passwordLabel.setText(Messages.COMMONTXT_PW);
+
+		passwordText = new Text(composite, SWT.PASSWORD | SWT.BORDER);
+		passwordText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		passwordText.setEditable(true);
+		if (cfServer.getPassword() != null) {
+			passwordText.setText(cfServer.getPassword());
+		}
+
+		passwordText.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				cfServer.setPassword(passwordText.getText());
+
+				updateUI(false);
+			}
+		});
+		return composite;
 	}
 
 	/**

@@ -78,7 +78,7 @@ import org.osgi.framework.Bundle;
  * <p/>
  * If state needs to be held on a per-test-case basis, use the {@link Harness}
  * to store state.
- *
+ * 
  * @author Steffen Pingel
  */
 public class CloudFoundryTestFixture {
@@ -98,7 +98,7 @@ public class CloudFoundryTestFixture {
 	public static final String CLOUDFOUNDRY_TEST_CREDENTIALS_PROPERTY = "test.credentials";
 
 	/**
-	 *
+	 * 
 	 * The intention of the harness is to create a web project and server
 	 * instance PER test case, and which holds state that is relevant only
 	 * during the lifetime of a single test case. It should NOT hold state that
@@ -205,16 +205,17 @@ public class CloudFoundryTestFixture {
 
 		protected void setCloudSpace(CloudFoundryServer cloudServer, String orgName, String spaceName)
 				throws CoreException {
-			CloudOrgsAndSpaces spaces = CloudUiUtil.getCloudSpaces(cloudServer.getUsername(), cloudServer.getPassword(),
-					cloudServer.getUrl(), false, cloudServer.getSelfSignedCertificate(), null);
+			CloudOrgsAndSpaces spaces = CloudUiUtil.getCloudSpaces(cloudServer.getUsername(),
+					cloudServer.getPassword(), cloudServer.getUrl(), false, cloudServer.getSelfSignedCertificate(),
+					null, false, null);
 			Assert.isTrue(spaces != null, "Failed to resolve orgs and spaces.");
 			Assert.isTrue(spaces.getDefaultCloudSpace() != null,
 					"No default space selected in cloud space lookup handler.");
 
 			CloudSpace cloudSpace = spaces.getSpace(orgName, spaceName);
 			if (cloudSpace == null) {
-				throw CloudErrorUtil.toCoreException(
-						"Failed to resolve cloud space when running junits: " + orgName + " - " + spaceName);
+				throw CloudErrorUtil.toCoreException("Failed to resolve cloud space when running junits: " + orgName
+						+ " - " + spaceName);
 			}
 			cloudServer.setSpace(cloudSpace);
 		}
@@ -310,8 +311,8 @@ public class CloudFoundryTestFixture {
 			}
 
 			if (server != null) {
-				CloudFoundryServerBehaviour cloudFoundryServer = (CloudFoundryServerBehaviour) server
-						.loadAdapter(CloudFoundryServerBehaviour.class, null);
+				CloudFoundryServerBehaviour cloudFoundryServer = (CloudFoundryServerBehaviour) server.loadAdapter(
+						CloudFoundryServerBehaviour.class, null);
 				if (projectCreated) {
 					try {
 						cloudFoundryServer.deleteAllApplications(null);
@@ -343,7 +344,7 @@ public class CloudFoundryTestFixture {
 		 * Given a prefix for an application name (e.g. "test01" in
 		 * "test01myprojectname") constructs the expected URL based on the
 		 * default web project name ("myprojectname") and the domain. E.g:
-		 *
+		 * 
 		 * <p/>
 		 * Arg = test01
 		 * <p/>
@@ -429,7 +430,7 @@ public class CloudFoundryTestFixture {
 
 	public CloudFoundryTestFixture configureForApplicationDeployment(String fullApplicationName, int memory,
 			boolean deployStopped, List<EnvironmentVariable> variables, List<CloudService> services)
-					throws CoreException {
+			throws CoreException {
 		CloudFoundryPlugin
 				.setCallback(new TestCallback(fullApplicationName, memory, deployStopped, variables, services));
 		return getTestFixture();

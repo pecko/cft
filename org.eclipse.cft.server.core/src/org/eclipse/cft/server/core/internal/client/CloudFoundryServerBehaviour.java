@@ -1457,10 +1457,10 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 	 * @return resolved orgs and spaces for the given credential and server URL.
 	 */
 	public static CloudOrgsAndSpaces getCloudSpacesExternalClient(CloudCredentials credentials, final String url,
-			boolean selfSigned, IProgressMonitor monitor) throws CoreException {
+			boolean selfSigned, final boolean sso, final String passcode, IProgressMonitor monitor) throws CoreException {
 
 		final CloudFoundryOperations operations = CloudFoundryServerBehaviour.createExternalClientLogin(url,
-				credentials.getEmail(), credentials.getPassword(), selfSigned, monitor);
+				credentials.getEmail(), credentials.getPassword(), selfSigned, sso, passcode, monitor);
 
 		return new ClientRequest<CloudOrgsAndSpaces>("Getting orgs and spaces") { //$NON-NLS-1$
 			@Override
@@ -1496,16 +1496,16 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 	}
 
 	public static void validate(final String location, String userName, String password, boolean selfSigned,
-			IProgressMonitor monitor) throws CoreException {
-		createExternalClientLogin(location, userName, password, selfSigned, monitor);
+			IProgressMonitor monitor, boolean sso, String passcode) throws CoreException {
+		createExternalClientLogin(location, userName, password, selfSigned, sso, passcode, monitor);
 	}
 
 	public static CloudFoundryOperations createExternalClientLogin(final String location, String userName,
-			String password, boolean selfSigned, IProgressMonitor monitor) throws CoreException {
+			String password, boolean selfSigned, boolean sso, String passcode, IProgressMonitor monitor) throws CoreException {
 		SubMonitor progress = SubMonitor.convert(monitor);
 		progress.beginTask("Connecting", IProgressMonitor.UNKNOWN); //$NON-NLS-1$
 		try {
-			final CloudFoundryOperations client = createClient(location, userName, password, selfSigned);
+			final CloudFoundryOperations client = createClient(location, userName, password, selfSigned, sso, passcode);
 
 			new ClientRequest<Void>(Messages.VALIDATING_CREDENTIALS) {
 
@@ -1531,6 +1531,14 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 		finally {
 			progress.done();
 		}
+	}
+
+	private static CloudFoundryOperations createClient(String location, String userName, String password,
+			boolean selfSigned, boolean sso, String passcode) throws CoreException {
+		if (!sso) {
+			return createClient(location, userName, password, selfSigned);
+		}
+		return createClient(location, new CloudCredentials(passcode), null, selfSigned);
 	}
 
 	public static void register(String location, String userName, String password, boolean selfSigned,
