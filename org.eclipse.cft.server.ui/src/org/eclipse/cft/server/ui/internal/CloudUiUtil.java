@@ -34,7 +34,9 @@ import org.eclipse.cft.server.core.AbstractCloudFoundryUrl;
 import org.eclipse.cft.server.core.internal.CloudErrorUtil;
 import org.eclipse.cft.server.core.internal.CloudFoundryBrandingExtensionPoint;
 import org.eclipse.cft.server.core.internal.CloudFoundryPlugin;
+import org.eclipse.cft.server.core.internal.CloudFoundryServer;
 import org.eclipse.cft.server.core.internal.CloudFoundryBrandingExtensionPoint.CloudServerURL;
+import org.eclipse.cft.server.core.internal.client.CloudFoundryClientFactory;
 import org.eclipse.cft.server.core.internal.client.CloudFoundryServerBehaviour;
 import org.eclipse.cft.server.core.internal.spaces.CloudOrgsAndSpaces;
 import org.eclipse.core.runtime.CoreException;
@@ -538,4 +540,20 @@ public class CloudUiUtil {
 		return PlatformUI.getWorkbench().getModalDialogShellProvider().getShell();
 	}
 
+	public static String getPromptText(CloudFoundryServer cfServer) {
+		String ssoUrl = "";
+		String href = null;
+		if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
+			try {
+				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl(), cfServer.getSelfSignedCertificate());
+				if (href != null) {
+					ssoUrl = Messages.bind(Messages.PASSCODE_PROMPT2, href);
+				}
+			}
+			catch (Exception e1) {
+				CloudFoundryServerUiPlugin.logWarning(e1);
+			}
+		}
+		return ssoUrl;
+	}
 }

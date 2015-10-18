@@ -68,6 +68,7 @@ import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 import org.eclipse.ui.forms.widgets.Hyperlink;
 import org.eclipse.ui.forms.widgets.Section;
+import org.eclipse.ui.internal.browser.WebBrowserPreference;
 import org.eclipse.ui.part.PageBook;
 import org.eclipse.wst.server.core.IServer;
 import org.eclipse.wst.server.ui.editor.ServerEditorSection;
@@ -424,10 +425,10 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 		prompt.setHref(href);
 		prompt.addHyperlinkListener(new HyperlinkAdapter() {
 			public void linkActivated(HyperlinkEvent e) {
-				CloudUiUtil.openUrl(prompt.getHref().toString());
+				CloudUiUtil.openUrl(prompt.getHref().toString(), WebBrowserPreference.EXTERNAL);
 			}
 		});
-		passcodeLabel = toolkit.createLabel(composite, Messages.CloudFoundryAccountSection_LABEL_PASSCODE, SWT.NONE);
+		passcodeLabel = toolkit.createLabel(composite, Messages.LABEL_PASSCODE, SWT.NONE);
 		passcodeLabel.setForeground(toolkit.getColors().getColor(IFormColors.TITLE));
 		passcodeLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
 

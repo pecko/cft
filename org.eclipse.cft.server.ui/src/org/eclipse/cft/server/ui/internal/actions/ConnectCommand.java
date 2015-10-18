@@ -23,6 +23,7 @@ package org.eclipse.cft.server.ui.internal.actions;
 import org.eclipse.cft.server.core.internal.CloudFoundryServer;
 import org.eclipse.cft.server.ui.internal.CloudFoundryServerUiPlugin;
 import org.eclipse.cft.server.ui.internal.Messages;
+import org.eclipse.cft.server.ui.internal.dialog.ConnectSsoServerDialog;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.runtime.CoreException;
@@ -31,9 +32,10 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.osgi.util.NLS;
-import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.PlatformUI;
 
 public class ConnectCommand extends BaseCommandHandler {
 
@@ -42,39 +44,30 @@ public class ConnectCommand extends BaseCommandHandler {
 		initializeSelection(event);
 		
 		final CloudFoundryServer cloudServer = (CloudFoundryServer) selectedServer.loadAdapter(CloudFoundryServer.class, null);
-		Job connectJob = new Job(Messages.ConnectCommand_JOB_CONN_SERVER) {
-			@Override
-			protected IStatus run(IProgressMonitor monitor) {
-				try {
-					// FIXME
-					if (cloudServer.isSso()) {
-						// enter passcode dialog
-						Display.getDefault().syncExec(new Runnable() {
-							
-							@Override
-							public void run() {
-								MessageDialog.openInformation(null, "Not yet implemented",
-									"This command isn't implemented for a sso server. Please, open the server editor and connect.");
-							}
-						});
-						
-					} else {
+		if (cloudServer.isSso()) {
+			Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
+			Dialog dialog = new ConnectSsoServerDialog(shell, cloudServer);
+			dialog.open();
+		}
+		else {
+			Job connectJob = new Job(Messages.ConnectCommand_JOB_CONN_SERVER) {
+				@Override
+				protected IStatus run(IProgressMonitor monitor) {
+					try {
 						cloudServer.getBehaviour().connect(monitor);
 					}
+					catch (OperationCanceledException e) {
+						return Status.CANCEL_STATUS;
+					}
+					catch (CoreException e) {
+						return new Status(IStatus.ERROR, CloudFoundryServerUiPlugin.PLUGIN_ID, NLS.bind(
+								Messages.ConnectCommand_ERROR_CONNECT, e.getMessage()));
+					}
+					return Status.OK_STATUS;
 				}
-				catch (OperationCanceledException e) {
-					return Status.CANCEL_STATUS;
-				}
-				catch (CoreException e) {
-//					Trace.trace(Trace.STRING_SEVERE, "Error calling connect() ", e);
-					return new Status(IStatus.ERROR, CloudFoundryServerUiPlugin.PLUGIN_ID,
-							NLS.bind(Messages.ConnectCommand_ERROR_CONNECT, e.getMessage()));
-				}
-				return Status.OK_STATUS;
-			}
-		};
-		connectJob.schedule();
-
+			};
+			connectJob.schedule();
+		}
 		return null;
 	}
 }

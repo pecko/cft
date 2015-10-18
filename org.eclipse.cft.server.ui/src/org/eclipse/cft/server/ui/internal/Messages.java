@@ -536,8 +536,6 @@ public class Messages extends NLS {
 
 	public static String CloudFoundryAccountSection_LABEL_PASSWORD;
 	
-	public static String CloudFoundryAccountSection_LABEL_PASSCODE;
-
 	public static String CloudFoundryAccountSection_LABEL_URL;
 
 	public static String CloudFoundryAccountSection_BUTTON_CHANGE_PW;
@@ -834,6 +832,12 @@ public class Messages extends NLS {
 
 	public static String ConnectCommand_ERROR_CONNECT;
 
+	public static String ConnectSsoServerDialog_CONNECT_BUTTON;
+
+	public static String ConnectSsoServerDialog_CONNECT_TITLE;
+
+	public static String ConnectSsoServerDialog_Passcode_is_required;
+
 	public static String DisablePublishSection_TEXT_PUBLISHING;
 
 	public static String DisablePublishSection_MANUAL;
@@ -964,6 +968,8 @@ public class Messages extends NLS {
 	public static String REMOVE_PROJECT_MAPPING;
 
 	public static String CloudFoundryServiceWizardPage_GETTING_AVAILABLE_SERVICES;
+	
+	public static String LABEL_PASSCODE;
 
 	private static final String BUNDLE_NAME =  CloudFoundryServerUiPlugin.PLUGIN_ID + ".internal.Messages"; //$NON-NLS-1$
 

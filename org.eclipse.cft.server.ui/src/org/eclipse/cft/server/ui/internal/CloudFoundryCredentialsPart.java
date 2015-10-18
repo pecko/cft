@@ -26,7 +26,6 @@ import org.eclipse.cft.server.core.internal.CloudFoundryConstants;
 import org.eclipse.cft.server.core.internal.CloudFoundryPlugin;
 import org.eclipse.cft.server.core.internal.CloudFoundryServer;
 import org.eclipse.cft.server.core.internal.ValidationEvents;
-import org.eclipse.cft.server.core.internal.client.CloudFoundryClientFactory;
 import org.eclipse.cft.server.ui.internal.editor.CloudUrlWidget;
 import org.eclipse.cft.server.ui.internal.wizards.RegisterAccountWizard;
 import org.eclipse.cft.server.ui.internal.wizards.WizardHandleContext;
@@ -56,6 +55,7 @@ import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.internal.browser.WebBrowserPreference;
 import org.eclipse.ui.part.PageBook;
 import org.eclipse.wst.server.ui.wizard.IWizardHandle;
 
@@ -196,6 +196,7 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 			public void widgetSelected(SelectionEvent e) {
 				cfServer.setSso(sso.getSelection());
 				showPage(emailPasswordControl, passcodeControl);
+				updateUI(false);
 			}
 			
 		});
@@ -205,7 +206,7 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 			protected void setUpdatedSelectionInServer() {
 
 				super.setUpdatedSelectionInServer();
-				prompt.setText(getPromptText());
+				prompt.setText(CloudUiUtil.getPromptText(cfServer));
 				updateUI(false);
 			}
 
@@ -216,7 +217,7 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 		String url = urlWidget.getURLSelection();
 		if (url != null) {
 			cfServer.setUrl(CloudUiUtil.getUrlFromDisplayText(url));
-			prompt.setText(getPromptText());
+			prompt.setText(CloudUiUtil.getPromptText(cfServer));
 		}
 
 		final Composite validateComposite = new Composite(composite, SWT.NONE);
@@ -288,19 +289,19 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 		gd = new GridData(SWT.FILL, SWT.FILL, true, false);
 		gd.horizontalSpan = 2;
 		prompt.setLayoutData(gd);
-		String ssoUrl = getPromptText();
+		String ssoUrl = CloudUiUtil.getPromptText(cfServer);
 		prompt.setText(ssoUrl);
 		prompt.addListener(SWT.Selection, new Listener() {
 			
 			@Override
 			public void handleEvent(Event event) {
 				if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
-					CloudUiUtil.openUrl(cfServer.getUrl());
+					CloudUiUtil.openUrl(cfServer.getUrl(), WebBrowserPreference.EXTERNAL);
 				}
 			}
 		});
 		passcodeLabel = new Label(composite, SWT.NONE);
-		passcodeLabel.setText(Messages.CloudFoundryAccountSection_LABEL_PASSCODE);
+		passcodeLabel.setText(Messages.LABEL_PASSCODE);
 		passcodeLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
 
 		passcodeText = new Text(composite, SWT.BORDER|SWT.PASSWORD);
@@ -314,23 +315,6 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 			}
 		});
 		return composite;
-	}
-
-	private String getPromptText() {
-		String ssoUrl = "";
-		String href = null;
-		if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
-			try {
-				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl(), cfServer.getSelfSignedCertificate());
-				if (href != null) {
-					ssoUrl = Messages.bind(Messages.PASSCODE_PROMPT2, href);
-				}
-			}
-			catch (Exception e1) {
-				CloudFoundryServerUiPlugin.logWarning(e1);
-			}
-		}
-		return ssoUrl;
 	}
 	
 	private Control createEmailPasswordControl(Composite parent) {
@@ -398,9 +382,9 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 
 	protected void updateButtons() {
 		String url = cfServer.getUrl();
-		cfSignupButton.setEnabled(CloudFoundryURLNavigation.canEnableCloudFoundryNavigation(serverTypeId, url));
+		cfSignupButton.setEnabled(!sso.getSelection() && CloudFoundryURLNavigation.canEnableCloudFoundryNavigation(serverTypeId, url));
 
-		registerAccountButton.setEnabled(CloudFoundryBrandingExtensionPoint.supportsRegistration(serverTypeId, url));
+		registerAccountButton.setEnabled(!sso.getSelection() && CloudFoundryBrandingExtensionPoint.supportsRegistration(serverTypeId, url));
 
 	}
 
@@ -416,7 +400,7 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 		// previously
 		// set a space descriptor, clear the space descriptor
 
-		validateButton.setEnabled(valuesFilled);
+		validateButton.setEnabled(valuesFilled && !sso.getSelection());
 
 	}
 }

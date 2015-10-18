@@ -1152,6 +1152,10 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 		getServer().addServerListener(serverListener, ServerEvent.SERVER_CHANGE);
 
 		try {
+			// this code will just throw an exception for a sso server
+			if (getCloudFoundryServer().isSso() && !getCloudFoundryServer().isConnected()) {
+				return;
+			}
 			getApplicationUrlLookup().refreshDomains(monitor);
 
 			// Important: Must perform a refresh operation
