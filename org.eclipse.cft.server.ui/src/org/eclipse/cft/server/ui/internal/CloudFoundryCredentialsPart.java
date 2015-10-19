@@ -26,6 +26,7 @@ import org.eclipse.cft.server.core.internal.CloudFoundryConstants;
 import org.eclipse.cft.server.core.internal.CloudFoundryPlugin;
 import org.eclipse.cft.server.core.internal.CloudFoundryServer;
 import org.eclipse.cft.server.core.internal.ValidationEvents;
+import org.eclipse.cft.server.core.internal.client.CloudFoundryClientFactory;
 import org.eclipse.cft.server.ui.internal.editor.CloudUrlWidget;
 import org.eclipse.cft.server.ui.internal.wizards.RegisterAccountWizard;
 import org.eclipse.cft.server.ui.internal.wizards.WizardHandleContext;
@@ -296,7 +297,14 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 			@Override
 			public void handleEvent(Event event) {
 				if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
-					CloudUiUtil.openUrl(cfServer.getUrl(), WebBrowserPreference.EXTERNAL);
+					String url;
+					try {
+						url = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl(), cfServer.getSelfSignedCertificate());
+						CloudUiUtil.openUrl(url, WebBrowserPreference.EXTERNAL);
+					}
+					catch (Exception e) {
+						CloudFoundryServerUiPlugin.logWarning(e);
+					}
 				}
 			}
 		});
