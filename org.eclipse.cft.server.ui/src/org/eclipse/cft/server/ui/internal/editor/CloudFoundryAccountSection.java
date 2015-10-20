@@ -677,8 +677,10 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 			pageBook.showPage(passcodePage);
 		} else {
 			pageBook.showPage(emailPasswordPage);
-			cfServer.setPasscode(null);
-			passcodeText.setText("");
+			if (!passcodeText.getText().isEmpty()) {
+				cfServer.setPasscode(null);
+				passcodeText.setText("");
+			}
 		}
 		pageBook.getParent().layout(true, true);
 		validateButton.setEnabled(!isSso);
