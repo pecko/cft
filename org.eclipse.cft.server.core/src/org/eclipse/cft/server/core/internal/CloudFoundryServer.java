@@ -109,6 +109,11 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 	static final String PROP_PASSWORD_ID = "org.eclipse.cft.password"; //$NON-NLS-1$
 
 	/**
+	 * Attribute key for the token.
+	 */
+	public static final String PROP_TOKEN_ID = "org.eclipse.cft.token"; //$NON-NLS-1$
+
+	/**
 	 * Attribute key for the API url.
 	 */
 	static final String PROP_URL = "org.eclipse.cft.url"; //$NON-NLS-1$
@@ -182,6 +187,8 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 	private String initialServerId;
 
 	private String password;
+	
+	private String token;
 
 	private CloudFoundrySpace cloudSpace;
 
@@ -439,6 +446,20 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 		return new ServerCredentialsStore(getServerId()).getPassword();
 	}
 
+	public String getToken() {
+		if (secureStoreDirty) {
+			return token;
+		}
+		String cachedToken = getData() != null ? getData().getToken() : null;
+		if (cachedToken != null) {
+			return cachedToken;
+		}
+		String legacyToken = getAttribute(PROP_TOKEN_ID, (String) null);
+		if (legacyToken != null) {
+			return legacyToken;
+		}
+		return new ServerCredentialsStore(getServerId()).getToken();
+	}
 	/**
 	 * Public for testing.
 	 */
@@ -730,6 +751,23 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 		}
 	}
 
+	public void setToken(String token) {
+		this.secureStoreDirty = true;
+		this.token = token;
+
+		// remove token in case an earlier version stored it in server
+		// properties
+		if (getServerWorkingCopy() != null) {
+			getServerWorkingCopy().setAttribute(PROP_TOKEN_ID, (String) null);
+		}
+		
+		updateServerId();
+
+		if (getData() != null) {
+			getData().setToken(token);
+		}
+	}
+	
 	public void setSpace(CloudSpace space) {
 
 		secureStoreDirty = true;
@@ -807,8 +845,9 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 	protected void initialize() {
 		super.initialize();
 		serverTypeId = getServer().getServerType().getId();
-		// legacy in case password was saved by an earlier version
+		// legacy in case password or token was saved by an earlier version
 		this.password = getAttribute(PROP_PASSWORD_ID, (String) null);
+		this.token = getAttribute(PROP_TOKEN_ID, (String) null);
 		this.initialServerId = getAttribute(PROP_SERVER_ID, (String) null);
 	}
 
@@ -1117,14 +1156,16 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 			if (getData() != null) {
 				getData().updateServerId(initialServerId, serverId);
 
-				// cache password
+				// cache password and token
 				getData().setPassword(password);
+				getData().setToken(token);
 			}
 
-			// persist password
+			// persist password and token
 			ServerCredentialsStore store = getCredentialsStore();
 			store.setUsername(getUsername());
 			store.setPassword(password);
+			store.setToken(token);
 			store.flush(serverId);
 
 			this.initialServerId = serverId;
@@ -1152,6 +1193,27 @@ public class CloudFoundryServer extends ServerDelegate implements IURLProvider {
 		ServerCredentialsStore store = getCredentialsStore();
 		store.setUsername(getUsername());
 		store.setPassword(password);
+		store.flush(serverId);
+	}
+	
+	public void setAndSaveToken(String token) {
+		this.token = token;
+
+		// remove token in case an earlier version stored it in server
+		// properties
+		if (getServerWorkingCopy() != null) {
+			getServerWorkingCopy().setAttribute(PROP_TOKEN_ID, (String) null);
+		}
+
+		if (getData() != null) {
+			getData().setToken(token);
+		}
+
+		String serverId = getServerId();
+
+		// persist token
+		ServerCredentialsStore store = getCredentialsStore();
+		store.setToken(token);
 		store.flush(serverId);
 	}
 

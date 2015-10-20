@@ -685,12 +685,14 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 		pageBook.getParent().layout(true, true);
 		validateButton.setEnabled(!isSso);
 		validateLabel.setVisible(!isSso );
-		changePasswordButton.setEnabled(!isSso && validateLabel.getText().length() > 0);
-		try {
-			cfServer.getBehaviour().disconnect(new NullProgressMonitor());
-		}
-		catch (CoreException e) {
-			CloudFoundryServerUiPlugin.logError(e);
+		changePasswordButton.setEnabled(!isSso && validateLabel.getText().length() <= 0);
+		if (isSso) {
+			try {
+				cfServer.getBehaviour().disconnect(new NullProgressMonitor());
+			}
+			catch (CoreException e) {
+				CloudFoundryServerUiPlugin.logError(e);
+			}
 		}
 	}
 }

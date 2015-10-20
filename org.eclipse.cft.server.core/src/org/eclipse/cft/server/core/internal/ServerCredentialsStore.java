@@ -38,9 +38,13 @@ public class ServerCredentialsStore {
 
 	private static final String KEY_USERNAME = "username"; //$NON-NLS-1$
 
+	private static final String KEY_TOKEN = "token"; //$NON-NLS-1$
+	
 	private boolean initialized;
 
 	private String password;
+	
+	private String token;
 
 	private AtomicBoolean securePreferencesDisabled = new AtomicBoolean(false);
 
@@ -70,6 +74,7 @@ public class ServerCredentialsStore {
 			try {
 				preferences.put(KEY_USERNAME, username, true);
 				preferences.put(KEY_PASSWORD, password, true);
+				preferences.put(KEY_TOKEN, token, true);
 				return true;
 			}
 			catch (StorageException e) {
@@ -82,6 +87,11 @@ public class ServerCredentialsStore {
 	public String getPassword() {
 		initialize();
 		return password;
+	}
+	
+	public String getToken() {
+		initialize();
+		return token;
 	}
 
 	public String getServerId() {
@@ -96,6 +106,11 @@ public class ServerCredentialsStore {
 	public void setPassword(String password) {
 		initialize();
 		this.password = password;
+	}
+	
+	public void setToken(String token) {
+		initialize();
+		this.token = token;
 	}
 
 	public void setUsername(String username) {
@@ -133,6 +148,7 @@ public class ServerCredentialsStore {
 		initialized = true;
 		username = readProperty(KEY_USERNAME);
 		password = readProperty(KEY_PASSWORD);
+		token = readProperty(KEY_TOKEN);
 	}
 	
 	private String readProperty(String property) {
