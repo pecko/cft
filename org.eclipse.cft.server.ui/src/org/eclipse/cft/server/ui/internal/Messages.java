@@ -971,6 +971,8 @@ public class Messages extends NLS {
 	
 	public static String LABEL_PASSCODE;
 
+	public static String PASSCODE_IS_NOT_SUPPORTED;
+
 	private static final String BUNDLE_NAME =  CloudFoundryServerUiPlugin.PLUGIN_ID + ".internal.Messages"; //$NON-NLS-1$
 
 	static {

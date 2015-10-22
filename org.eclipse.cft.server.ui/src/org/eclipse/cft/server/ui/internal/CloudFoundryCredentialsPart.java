@@ -300,7 +300,9 @@ public class CloudFoundryCredentialsPart extends UIPart implements IPartChangeLi
 					String url;
 					try {
 						url = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl(), cfServer.getSelfSignedCertificate());
-						CloudUiUtil.openUrl(url, WebBrowserPreference.EXTERNAL);
+						if (url != null && !url.isEmpty()) {
+							CloudUiUtil.openUrl(url, WebBrowserPreference.EXTERNAL);
+						}
 					}
 					catch (Exception e) {
 						CloudFoundryServerUiPlugin.logWarning(e);

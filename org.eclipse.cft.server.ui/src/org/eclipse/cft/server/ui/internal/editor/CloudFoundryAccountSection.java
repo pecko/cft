@@ -421,11 +421,18 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 				CloudFoundryServerUiPlugin.logWarning(e1);
 			}
 		}
-		prompt.setText(ssoUrl);
-		prompt.setHref(href);
+		if (href != null && !href.isEmpty()) {
+			prompt.setText(ssoUrl);
+			prompt.setHref(href);
+		} else {
+			prompt.setText(Messages.PASSCODE_IS_NOT_SUPPORTED);
+			prompt.setHref(null);
+		}
 		prompt.addHyperlinkListener(new HyperlinkAdapter() {
 			public void linkActivated(HyperlinkEvent e) {
-				CloudUiUtil.openUrl(prompt.getHref().toString(), WebBrowserPreference.EXTERNAL);
+				if (prompt.getHref() != null && !prompt.getHref().toString().isEmpty()) {
+					CloudUiUtil.openUrl(prompt.getHref().toString(), WebBrowserPreference.EXTERNAL);
+				}
 			}
 		});
 		passcodeLabel = toolkit.createLabel(composite, Messages.LABEL_PASSCODE, SWT.NONE);

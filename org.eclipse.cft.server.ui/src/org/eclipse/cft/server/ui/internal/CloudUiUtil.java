@@ -546,8 +546,10 @@ public class CloudUiUtil {
 		if (cfServer.getUrl() != null && !cfServer.getUrl().isEmpty()) {
 			try {
 				href = CloudFoundryClientFactory.getSsoUrl(cfServer.getUrl(), cfServer.getSelfSignedCertificate());
-				if (href != null) {
+				if (href != null && !href.isEmpty()) {
 					ssoUrl = Messages.bind(Messages.PASSCODE_PROMPT2, href);
+				} else {
+					ssoUrl = Messages.PASSCODE_IS_NOT_SUPPORTED;
 				}
 			}
 			catch (Exception e1) {
