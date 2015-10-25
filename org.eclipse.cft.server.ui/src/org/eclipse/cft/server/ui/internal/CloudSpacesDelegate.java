@@ -129,7 +129,7 @@ public abstract class CloudSpacesDelegate {
 	 * @param sso 
 	 * @return
 	 */
-	public boolean matchesCurrentDescriptor(String urlText, String userName, String password, boolean selfSigned, boolean sso, String passcode) {
+	public boolean matchesCurrentDescriptor(String urlText, String userName, String password, boolean selfSigned) {
 		String actualURL = CloudUiUtil.getUrlFromDisplayText(urlText);
 
 		String cachedDescriptorID = CloudSpacesDescriptor.getDescriptorID(userName, password, actualURL, selfSigned);
@@ -217,10 +217,10 @@ public abstract class CloudSpacesDelegate {
 	 * list of spaces
 	 */
 	public CloudSpacesDescriptor resolveDescriptor(String urlText, String userName, String password,
-			boolean selfSigned, IRunnableContext context, boolean updateDescriptor, boolean sso, String passcode) throws CoreException {
+			boolean selfSigned, IRunnableContext context, boolean updateDescriptor, boolean sso, String passcode, String tokenValue) throws CoreException {
 		CloudSpacesDescriptor descriptor = null;
 		if (updateDescriptor) {
-			descriptor = internalUpdateDescriptor(urlText, userName, password, selfSigned, context, sso, passcode);
+			descriptor = internalUpdateDescriptor(urlText, userName, password, selfSigned, context, sso, passcode, tokenValue);
 		}
 
 		IStatus status = validateCurrent(getCurrentCloudSpace());
@@ -231,14 +231,14 @@ public abstract class CloudSpacesDelegate {
 	}
 
 	protected CloudSpacesDescriptor internalUpdateDescriptor(String urlText, String userName, String password,
-			boolean selfSigned, IRunnableContext context, boolean sso, String passcode) throws CoreException {
+			boolean selfSigned, IRunnableContext context, boolean sso, String passcode, String tokenValue) throws CoreException {
 		String actualURL = CloudUiUtil.getUrlFromDisplayText(urlText);
 
-		validateCredentialsLocally(actualURL, userName, password, sso, passcode);
+		validateCredentialsLocally(actualURL, userName, password, sso, passcode, tokenValue);
 
 		if (spacesDescriptor == null) {
 			CloudOrgsAndSpaces orgsAndSpaces = CloudUiUtil.getCloudSpaces(userName, password, actualURL, true,
-					selfSigned, context, sso, passcode);
+					selfSigned, context, sso, passcode, tokenValue);
 
 			if (orgsAndSpaces != null) {
 				spacesDescriptor = new CloudSpacesDescriptor(orgsAndSpaces, userName, password, actualURL, selfSigned);
@@ -267,17 +267,20 @@ public abstract class CloudSpacesDelegate {
 		return CloudFoundryPlugin.getStatus(validationMessage, severity);
 	}
 
-	protected void validateCredentialsLocally(String url, String userName, String password, boolean sso, String passcode) throws CoreException {
+	protected void validateCredentialsLocally(String url, String userName, String password, 
+			boolean sso, String passcode, String tokenValue) throws CoreException {
 		String actualURL = cloudServer.getUrl();
 		String actualUserName = cloudServer.getUsername();
 		String actualPassword = cloudServer.getPassword();
 		String actualPasscode = cloudServer.getPasscode();
+		String actualToken = cloudServer.getToken();
 
 		boolean isValid = true;
 		List<String[]> valuesToCheck = new ArrayList<String[]>();
 		if (sso) {
 			valuesToCheck.add(new String[] { url, actualURL }) ;
 			valuesToCheck.add(new String[] { passcode, actualPasscode }) ;
+			//valuesToCheck.add(new String[] { tokenValue, actualToken }) ;
 		} else {
 			valuesToCheck.add( new String[] { url, actualURL });
 			valuesToCheck.add( new String[] { userName, actualUserName });

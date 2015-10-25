@@ -11,7 +11,7 @@
 	<classpathentry exported="true" kind="lib" path="lib/jackson-mapper-asl-1.9.13.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jackson-annotations-2.3.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jackson-core-2.3.3.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/jackson-databind-2.3.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/jackson-databind-2.3.3.jar" sourcepath="/home/snpe/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.3.3/jackson-databind-2.3.3-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/protobuf-java-2.6.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/snakeyaml-1.13.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/spring-aop-4.0.5.RELEASE.jar"/>

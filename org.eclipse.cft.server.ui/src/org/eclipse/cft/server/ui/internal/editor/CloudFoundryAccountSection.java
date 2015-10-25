@@ -308,9 +308,10 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 				final String space = spaceText.getText();
 				final boolean sso = cfServer.isSso();
 				final String passcode = cfServer.getPasscode();
+				final String tokenValue = cfServer.getToken();
 				try {
 					CloudUiUtil.validateCredentials(userName, password, url, false,
-							cfServer.getSelfSignedCertificate(), null, sso, passcode);
+							cfServer.getSelfSignedCertificate(), null, sso, passcode, tokenValue);
 
 					if (org != null && space != null) {
 						validateLabel.setForeground(validateLabel.getDisplay().getSystemColor(SWT.COLOR_BLUE));
@@ -680,6 +681,9 @@ public class CloudFoundryAccountSection extends ServerEditorSection implements C
 			if (!passcodeText.getText().isEmpty()) {
 				cfServer.setPasscode(null);
 				passcodeText.setText("");
+			}
+			if (cfServer.getToken() != null) {
+				cfServer.setToken(null);
 			}
 		}
 		pageBook.getParent().layout(true, true);

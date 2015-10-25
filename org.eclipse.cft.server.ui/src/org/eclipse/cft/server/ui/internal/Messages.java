@@ -449,6 +449,8 @@ public class Messages extends NLS {
 	public static String ShowConsoleEditorAction_TEXT_SHOW_CONSOLE;
 
 	public static String SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
+	
+	public static String SSO_SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
 
 	public static String ServerHandler_QUERY_RUNTIME_EXISTS;
 

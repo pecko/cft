@@ -171,6 +171,7 @@ public class RefreshModulesHandler {
 								opToRun.getClass()));
 					}
 					else {
+						cloudServer.setAndSaveToken(null);
 						ServerEventHandler.getDefault().fireError(cloudServer, module,
 								CloudFoundryPlugin.getErrorStatus(Messages.RefreshModulesHandler_REFRESH_FAILURE, t));
 

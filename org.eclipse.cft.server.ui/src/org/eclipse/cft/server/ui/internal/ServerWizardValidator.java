@@ -190,6 +190,7 @@ public abstract class ServerWizardValidator implements ServerValidator {
 		boolean acceptSelfSigned = cfServer.getSelfSignedCertificate();
 		boolean sso = cfServer.isSso();
 		String passcode = cfServer.getPasscode();
+		String tokenValue = cfServer.getToken();
 
 		IStatus eventStatus = null;
 
@@ -199,7 +200,7 @@ public abstract class ServerWizardValidator implements ServerValidator {
 			// validation is required later on
 			// the new credentials will be validated and a new descriptor will
 			// be obtained.
-			if (!sso && !cloudServerSpaceDelegate.matchesCurrentDescriptor(url, userName, password, acceptSelfSigned, sso, passcode)) {
+			if (!sso && !cloudServerSpaceDelegate.matchesCurrentDescriptor(url, userName, password, acceptSelfSigned)) {
 				cloudServerSpaceDelegate.clearDescriptor();
 			}
 
@@ -211,7 +212,7 @@ public abstract class ServerWizardValidator implements ServerValidator {
 				// credential validation.
 				if (validateSpace) {
 					cloudServerSpaceDelegate.resolveDescriptor(url, userName, password, acceptSelfSigned,
-							runnableContext, validateAgainstServer, sso, passcode);
+							runnableContext, validateAgainstServer, sso, passcode, tokenValue);
 				}
 				else if (validateAgainstServer) {
 					// If validation is requested but not space validation.
@@ -220,7 +221,7 @@ public abstract class ServerWizardValidator implements ServerValidator {
 					// it to an actual URL)
 					boolean displayURL = true;
 					CloudUiUtil.validateCredentials(userName, password, url, displayURL, acceptSelfSigned,
-							runnableContext, sso, passcode);
+							runnableContext, sso, passcode, tokenValue);
 				}
 
 			}

@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import org.cloudfoundry.client.lib.CloudCredentials;
 import org.cloudfoundry.client.lib.domain.CloudService;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
@@ -58,6 +60,9 @@ import org.eclipse.wst.server.core.model.IModuleResource;
 import org.eclipse.wst.server.core.util.ModuleFile;
 import org.eclipse.wst.server.core.util.ModuleFolder;
 import org.eclipse.wst.server.core.util.PublishHelper;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Christian Dupuis
@@ -410,5 +415,31 @@ public class CloudUtil {
 		for (int i = 0; i < size; i++) {
 			result.add(status[i]);
 		}
+	}
+	
+	public static CloudCredentials getSsoCredentials(String passcode, String tokenValue) {
+		CloudCredentials credentials = null;
+		if (tokenValue != null && !tokenValue.isEmpty()) {
+			try {
+				OAuth2AccessToken token = new ObjectMapper().readValue(tokenValue, OAuth2AccessToken.class);
+				credentials = new CloudCredentials(token);
+				Class<?> c = credentials.getClass();
+				try {
+					Field field = c.getDeclaredField("passcode");
+					field.setAccessible(true);
+					field.set(credentials, passcode);
+				}
+				catch (Exception e) {
+					CloudFoundryPlugin.logError(e);
+				}
+			}
+			catch (IOException e) {
+				// ignore
+			}
+		}
+		if (credentials == null) {
+			credentials = new CloudCredentials(passcode);
+		}
+		return credentials;
 	}
 }

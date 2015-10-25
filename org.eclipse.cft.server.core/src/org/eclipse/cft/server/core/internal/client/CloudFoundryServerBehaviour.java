@@ -21,6 +21,7 @@
  ********************************************************************************/
 package org.eclipse.cft.server.core.internal.client;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -96,7 +97,11 @@ import org.eclipse.wst.server.core.model.IModuleFile;
 import org.eclipse.wst.server.core.model.IModuleResource;
 import org.eclipse.wst.server.core.model.IModuleResourceDelta;
 import org.eclipse.wst.server.core.model.ServerBehaviourDelegate;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.web.client.RestClientException;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 
@@ -182,7 +187,14 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 		new BehaviourRequest<Void>("Loggging in to " + cloudServer.getUrl()) { //$NON-NLS-1$
 			@Override
 			protected Void doRun(CloudFoundryOperations client, SubMonitor progress) throws CoreException {
-				client.login();
+				OAuth2AccessToken token = client.login();
+				try {
+					String tokenValue = new ObjectMapper().writeValueAsString(token);
+					cloudServer.setAndSaveToken(tokenValue);
+				}
+				catch (JsonProcessingException e) {
+					CloudFoundryPlugin.logWarning(e.getMessage());
+				}
 				return null;
 			}
 		}.run(monitor);
@@ -818,11 +830,7 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 	public CloudFoundryOperations resetClient(CloudCredentials credentials, IProgressMonitor monitor)
 			throws CoreException {
 		internalResetClient();
-		CloudFoundryServer cloudServer = getCloudFoundryServer();
-		if (!cloudServer.isSso()) {
-			return getClient(credentials, monitor);
-		}
-		return null;
+		return getClient(credentials, monitor);
 	}
 
 	protected void internalResetClient() {
@@ -1118,7 +1126,12 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 			}
 			else {
 				if (cloudServer.isSso()) {
-					credentials = new CloudCredentials(getCloudFoundryServer().getPasscode());
+					String passcode = getCloudFoundryServer().getPasscode();
+					String tokenValue = getCloudFoundryServer().getToken();
+					credentials = CloudUtil.getSsoCredentials(passcode, tokenValue);
+					if (credentials == null) {
+						credentials = new CloudCredentials(passcode);
+					}
 					client = createClient(url, credentials, cloudFoundrySpace, cloudServer.getSelfSignedCertificate());
 				} else {
 					String userName = getCloudFoundryServer().getUsername();
@@ -1153,7 +1166,7 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 
 		try {
 			// this code will just throw an exception for a sso server
-			if (getCloudFoundryServer().isSso() && !getCloudFoundryServer().isConnected()) {
+			if (getCloudFoundryServer().isSso() && getCloudFoundryServer().getToken() == null) {
 				return;
 			}
 			getApplicationUrlLookup().refreshDomains(monitor);
@@ -1465,10 +1478,10 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 	 * @return resolved orgs and spaces for the given credential and server URL.
 	 */
 	public static CloudOrgsAndSpaces getCloudSpacesExternalClient(CloudCredentials credentials, final String url,
-			boolean selfSigned, final boolean sso, final String passcode, IProgressMonitor monitor) throws CoreException {
+			boolean selfSigned, final boolean sso, final String passcode, String tokenValue, IProgressMonitor monitor) throws CoreException {
 
 		final CloudFoundryOperations operations = CloudFoundryServerBehaviour.createExternalClientLogin(url,
-				credentials.getEmail(), credentials.getPassword(), selfSigned, sso, passcode, monitor);
+				credentials.getEmail(), credentials.getPassword(), selfSigned, sso, passcode, tokenValue, monitor);
 
 		return new ClientRequest<CloudOrgsAndSpaces>("Getting orgs and spaces") { //$NON-NLS-1$
 			@Override
@@ -1504,16 +1517,20 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 	}
 
 	public static void validate(final String location, String userName, String password, boolean selfSigned,
-			IProgressMonitor monitor, boolean sso, String passcode) throws CoreException {
-		createExternalClientLogin(location, userName, password, selfSigned, sso, passcode, monitor);
+			boolean sso, String passcode, String tokenValue, IProgressMonitor monitor) throws CoreException {
+		createExternalClientLogin(location, userName, password, selfSigned, sso, passcode, tokenValue, monitor);
 	}
 
 	public static CloudFoundryOperations createExternalClientLogin(final String location, String userName,
-			String password, boolean selfSigned, boolean sso, String passcode, IProgressMonitor monitor) throws CoreException {
+			String password, boolean selfSigned, IProgressMonitor monitor) throws CoreException {
+		return createExternalClientLogin(location, userName, password, selfSigned, false, null, null, monitor);
+	}
+	public static CloudFoundryOperations createExternalClientLogin(final String location, String userName,
+			String password, boolean selfSigned, boolean sso, String passcode, String tokenValue, IProgressMonitor monitor) throws CoreException {
 		SubMonitor progress = SubMonitor.convert(monitor);
 		progress.beginTask("Connecting", IProgressMonitor.UNKNOWN); //$NON-NLS-1$
 		try {
-			final CloudFoundryOperations client = createClient(location, userName, password, selfSigned, sso, passcode);
+			final CloudFoundryOperations client = createClient(location, userName, password, selfSigned, sso, passcode, tokenValue);
 
 			new ClientRequest<Void>(Messages.VALIDATING_CREDENTIALS) {
 
@@ -1542,11 +1559,12 @@ public class CloudFoundryServerBehaviour extends ServerBehaviourDelegate {
 	}
 
 	private static CloudFoundryOperations createClient(String location, String userName, String password,
-			boolean selfSigned, boolean sso, String passcode) throws CoreException {
+			boolean selfSigned, boolean sso, String passcode, String tokenValue) throws CoreException {
 		if (!sso) {
 			return createClient(location, userName, password, selfSigned);
 		}
-		return createClient(location, new CloudCredentials(passcode), null, selfSigned);
+		CloudCredentials credentials = CloudUtil.getSsoCredentials(passcode, tokenValue);
+		return createClient(location, credentials, null, selfSigned);
 	}
 
 	public static void register(String location, String userName, String password, boolean selfSigned,

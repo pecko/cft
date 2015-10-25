@@ -22,6 +22,7 @@
  ********************************************************************************/
 package org.eclipse.cft.server.ui.internal;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -35,6 +36,7 @@ import org.eclipse.cft.server.core.internal.CloudErrorUtil;
 import org.eclipse.cft.server.core.internal.CloudFoundryBrandingExtensionPoint;
 import org.eclipse.cft.server.core.internal.CloudFoundryPlugin;
 import org.eclipse.cft.server.core.internal.CloudFoundryServer;
+import org.eclipse.cft.server.core.internal.CloudUtil;
 import org.eclipse.cft.server.core.internal.CloudFoundryBrandingExtensionPoint.CloudServerURL;
 import org.eclipse.cft.server.core.internal.client.CloudFoundryClientFactory;
 import org.eclipse.cft.server.core.internal.client.CloudFoundryServerBehaviour;
@@ -69,7 +71,10 @@ import org.eclipse.ui.internal.browser.WebBrowserPreference;
 import org.eclipse.ui.internal.browser.WorkbenchBrowserSupport;
 import org.eclipse.ui.views.IViewDescriptor;
 import org.eclipse.ui.views.IViewRegistry;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.web.client.ResourceAccessException;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * @author Steffen Pingel
@@ -240,7 +245,8 @@ public class CloudUiUtil {
 	 * @throws OperationCanceledException if validation is cancelled.
 	 */
 	public static void validateCredentials(final String userName, final String password, final String urlText,
-			final boolean displayURL, final boolean selfSigned, IRunnableContext context, final boolean sso, final String passcode) throws CoreException,
+			final boolean displayURL, final boolean selfSigned, IRunnableContext context, 
+			final boolean sso, final String passcode, final String tokenValue) throws CoreException,
 			OperationCanceledException {
 		try {
 			ICoreRunnable coreRunner = new ICoreRunnable() {
@@ -249,7 +255,7 @@ public class CloudUiUtil {
 					if (displayURL) {
 						url = getUrlFromDisplayText(urlText);
 					}
-					CloudFoundryServerBehaviour.validate(url, userName, password, selfSigned, monitor, sso, passcode);
+					CloudFoundryServerBehaviour.validate(url, userName, password, selfSigned, sso, passcode, tokenValue, monitor);
 				}
 			};
 			if (context != null) {
@@ -291,7 +297,7 @@ public class CloudUiUtil {
 	 * @throws CoreException
 	 */
 	public static CloudOrgsAndSpaces getCloudSpaces(final String userName, final String password, final String urlText,
-			final boolean displayURL, final boolean selfSigned, IRunnableContext context, final boolean sso, final String passcode) throws CoreException {
+			final boolean displayURL, final boolean selfSigned, IRunnableContext context, final boolean sso, final String passcode, final String tokenValue) throws CoreException {
 
 		try {
 			final CloudOrgsAndSpaces[] supportsSpaces = new CloudOrgsAndSpaces[1];
@@ -302,11 +308,14 @@ public class CloudUiUtil {
 						url = getUrlFromDisplayText(urlText);
 					}
 					if (sso) {
-						supportsSpaces[0] = CloudFoundryServerBehaviour.getCloudSpacesExternalClient(new CloudCredentials(
-								passcode), url, selfSigned, sso, passcode, monitor);
+						CloudCredentials credentials = CloudUtil.getSsoCredentials(passcode, tokenValue);
+						if (credentials == null) {
+							credentials = new CloudCredentials(passcode);
+						}
+						supportsSpaces[0] = CloudFoundryServerBehaviour.getCloudSpacesExternalClient(credentials , url, selfSigned, sso, passcode, tokenValue, monitor);
 					} else {
 						supportsSpaces[0] = CloudFoundryServerBehaviour.getCloudSpacesExternalClient(new CloudCredentials(
-							userName, password), url, selfSigned, sso, passcode, monitor);
+							userName, password), url, selfSigned, sso, passcode, tokenValue, monitor);
 					}
 				}
 			};
@@ -558,4 +567,5 @@ public class CloudUiUtil {
 		}
 		return ssoUrl;
 	}
+
 }

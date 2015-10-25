@@ -26,14 +26,13 @@ import org.eclipse.cft.server.ui.internal.Messages;
 import org.eclipse.cft.server.ui.internal.dialog.ConnectSsoServerDialog;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.osgi.util.NLS;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
@@ -42,32 +41,45 @@ public class ConnectCommand extends BaseCommandHandler {
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		// Always init first
 		initializeSelection(event);
-		
+
 		final CloudFoundryServer cloudServer = (CloudFoundryServer) selectedServer.loadAdapter(CloudFoundryServer.class, null);
-		if (cloudServer.isSso()) {
-			Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-			Dialog dialog = new ConnectSsoServerDialog(shell, cloudServer);
-			dialog.open();
-		}
-		else {
+		
 			Job connectJob = new Job(Messages.ConnectCommand_JOB_CONN_SERVER) {
 				@Override
 				protected IStatus run(IProgressMonitor monitor) {
 					try {
-						cloudServer.getBehaviour().connect(monitor);
+						if (!cloudServer.isSso() || cloudServer.getToken() != null) {
+							try {
+								cloudServer.getBehaviour().connect(monitor);
+							}
+							catch (Exception e) {
+								CloudFoundryServerUiPlugin.logWarning(e);
+							}
+						}
+						if (cloudServer.isSso() && !cloudServer.isConnected()) {
+							Display.getDefault().asyncExec(new Runnable() {
+								
+								@Override
+								public void run() {
+									Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
+									Dialog dialog = new ConnectSsoServerDialog(shell, cloudServer);
+									dialog.open();
+								}
+							});
+						}
 					}
 					catch (OperationCanceledException e) {
 						return Status.CANCEL_STATUS;
 					}
-					catch (CoreException e) {
-						return new Status(IStatus.ERROR, CloudFoundryServerUiPlugin.PLUGIN_ID, NLS.bind(
-								Messages.ConnectCommand_ERROR_CONNECT, e.getMessage()));
-					}
+//					catch (CoreException e) {
+//						return new Status(IStatus.ERROR, CloudFoundryServerUiPlugin.PLUGIN_ID, NLS.bind(
+//								Messages.ConnectCommand_ERROR_CONNECT, e.getMessage()));
+//					}
 					return Status.OK_STATUS;
 				}
 			};
 			connectJob.schedule();
-		}
+
 		return null;
 	}
 }

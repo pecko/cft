@@ -51,7 +51,7 @@ public class CredentialsWizardValidator extends ServerWizardValidator {
 		int validationEventType = ValidationEvents.VALIDATION;
 		if (getCloudFoundryServer().isSso()) {
 			valuesFilled = true;
-			message = Messages.SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
+			message = Messages.SSO_SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
 		} else {
 			String userName = getCloudFoundryServer().getUsername();
 			String password = getCloudFoundryServer().getPassword();
@@ -68,7 +68,11 @@ public class CredentialsWizardValidator extends ServerWizardValidator {
 			valuesFilled = false;
 		} else {
 			valuesFilled = true;
-			message = Messages.SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
+			if (getCloudFoundryServer().isSso()) {
+				message = Messages.SSO_SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
+			} else {
+				message = Messages.SERVER_WIZARD_VALIDATOR_CLICK_TO_VALIDATE;
+			}
 		}
 
 		// Missing values should appear as INFO in the wizard, as to not show an
